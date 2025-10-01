@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>視覺化知識圖卡系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .filter-bar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            animation: fadeIn 1s;
+        }
+
+        .filter-btn {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .filter-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-color: #f5576c;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .card-wrapper {
+            perspective: 1000px;
+            height: 450px;
+            animation: fadeInUp 0.6s;
+        }
+
+        .card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            cursor: pointer;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            justify-content: space-between;
+        }
+
+        .card-back {
+            background: white;
+            transform: rotateY(180deg);
+            overflow-y: auto;
+        }
+
+        .card-icon {
+            font-size: 4em;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        .card-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .card-subtitle {
+            text-align: center;
+            font-size: 1.1em;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .flip-hint {
+            text-align: center;
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .card-back-content h3 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .key-points {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .key-points h4 {
+            color: #764ba2;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .key-points ul {
+            list-style: none;
+        }
+
+        .key-points li {
+            padding: 10px 0;
+            padding-left: 30px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        .key-points li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+
+        .example-section {
+            background: #fff9e6;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #ffa500;
+            margin-bottom: 20px;
+        }
+
+        .example-section h4 {
+            color: #ff8c00;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .warning-section {
+            background: #ffe6e6;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #ff4444;
+            margin-bottom: 20px;
+        }
+
+        .warning-section h4 {
+            color: #cc0000;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .tag {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 5px 5px 0 0;
+            font-size: 0.9em;
+        }
+
+        .visual-diagram {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .tree-visual {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+        }
+
+        .tree-top {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 25px;
+            border-radius: 50% 50% 0 0;
+            width: 250px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .tree-trunk {
+            background: #8B4513;
+            width: 50px;
+            height: 60px;
+        }
+
+        .tree-roots {
+            background: linear-gradient(135deg, #654321, #543210);
+            color: white;
+            padding: 25px;
+            border-radius: 0 0 50% 50%;
+            width: 250px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(101, 67, 33, 0.4);
+        }
+
+        .circle-diagram {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .circle {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .influence-circle {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .concern-circle {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .score-badge {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 10px 0;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2em; }
+            .cards-container { grid-template-columns: 1fr; gap: 20px; }
+            .card-wrapper { height: 400px; }
+            .circle { width: 140px; height: 140px; font-size: 0.9em; }
+        }
+
+        .search-bar {
+            max-width: 600px;
+            margin: 0 auto 30px;
+            animation: fadeIn 1s;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1em;
+            background: rgba(255,255,255,0.9);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .stats-bar {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📚 視覺化知識圖卡系統</h1>
+        <p>翻轉卡片探索完整內容 • 互動學習更有效</p>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="🔍 搜尋知識卡片..." oninput="filterCards()">
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterByCategory('all', this)">全部顯示</button>
+        <button class="filter-btn" onclick="filterByCategory('management', this)">班級管理</button>
+        <button class="filter-btn" onclick="filterByCategory('planning', this)">規劃策略</button>
+        <button class="filter-btn" onclick="filterByCategory('success', this)">品格成功</button>
+        <button class="filter-btn" onclick="filterByCategory('theory', this)">學習理論</button>
+        <button class="filter-btn" onclick="filterByCategory('reflection', this)">反思工具</button>
+    </div>
+
+    <div class="stats-bar" id="statsBar">
+        顯示 <strong>12</strong> 張知識卡片
+    </div>
+
+    <div class="cards-container" id="cardsContainer">
+        <!-- Card 1: 班級即時管理 -->
+        <div class="card-wrapper" data-category="management" data-keywords="班級管理 秩序 分工 作業">
+            <div class="card">
+                <div class="card-face card-front" onclick="flipCard(this)">
+                    <div>
+                        <div class="card-icon">🏫</div>
+                        <div class="card-title">班級即時管理</div>
+                        <div class="card-subtitle">建立高效的教室秩序與工作分配流程</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">物品管理</span>
+                            <span class="tag">整隊集合</span>
+                            <span class="tag">任務分工</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back" onclick="flipCard(this)">
+                    <div class="card-back-content">
+                        <h3>🏫 班級即時管理與工作分配</h3>
+                        
+                        <div class="key-points">
+                            <h4>📋 四步驟管理流程</h4>
+                            <ul>
+                                <li><strong>步驟1:</strong> 水杯放鞋櫃 → 物品歸位整理</li>
+                                <li><strong>步驟2:</strong> 全班起立 → 人員統整確認</li>
+                                <li><strong>步驟3:</strong> 依白板編號1234開始動作 → 明確分工</li>
+                                <li><strong>步驟4:</strong> 收作業的交給老師 → 確保收齊</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>💬 標準口令</h4>
+                            <p>「水杯放鞋櫃,來全班起立,工作分配已經在白板上,按照編號1234開始動作,收作業的給我。」</p>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>⚡ 執行要點</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>✓ 指令需清晰依序下達</li>
+                                <li>✓ 利用視覺化白板分工</li>
+                                <li>✓ 指定作業收取者</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 2: 每日任務規劃 -->
+        <div class="card-wrapper" data-category="planning" data-keywords="規劃表 SNL 目標 計畫">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">📝</div>
+                        <div class="card-title">每日任務規劃</div>
+                        <div class="card-subtitle">SNL題與P改規劃 • 動詞+科目+範圍</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">每日三件事</span>
+                            <span class="tag">具體化</span>
+                            <span class="tag">壓時間</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>📝 每日任務規劃 (10/1-10/7)</h3>
+                        
+                        <div class="key-points">
+                            <h4>✍️ 書寫公式</h4>
+                            <ul>
+                                <li><strong>動詞:</strong> 完成、訂正、練習、複習</li>
+                                <li><strong>科目:</strong> 數學、國文、理化等</li>
+                                <li><strong>範圍:</strong> 第X-Y題、P.26-27、第三課</li>
+                                <li><strong>時間:</strong> 限時30分鐘、21:00-21:30</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>✅ 正確範例</h4>
+                            <p><strong>訂正</strong>理化講義<strong>第3課</strong>測驗錯題,共<strong>15題</strong>,限時<strong>30分鐘</strong></p>
+                            <p><strong>完成</strong>數學評量<strong>第15-20題</strong>,今晚<strong>21:00-21:30</strong></p>
+                            <p><strong>跳繩300下</strong>,連續不間斷,<strong>20分鐘</strong>內完成</p>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>❌ 常見錯誤與扣分</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li><span class="score-badge">60分</span> 只寫範圍不明確</li>
+                                <li><span class="score-badge">70分</span> 未壓時間</li>
+                                <li><span class="score-badge">-10分</span> 少寫一個</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 3: SMART原則 -->
+        <div class="card-wrapper" data-category="planning" data-keywords="SMART 目標 計畫 效率">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">🎯</div>
+                        <div class="card-title">SMART原則</div>
+                        <div class="card-subtitle">讓每個目標都清晰可執行</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">明確</span>
+                            <span class="tag">可測量</span>
+                            <span class="tag">有期限</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>🎯 SMART目標設定原則</h3>
+                        
+                        <div class="key-points">
+                            <h4>📐 五大要素</h4>
+                            <ul>
+                                <li><strong>S</strong>pecific 明確:動詞清楚,科目明確</li>
+                                <li><strong>M</strong>easurable 可測量:範圍、題數、頁碼</li>
+                                <li><strong>A</strong>chievable 可達成:時間合理分配</li>
+                                <li><strong>R</strong>elevant 相關:與學習目標一致</li>
+                                <li><strong>T</strong>ime-bound 有期限:壓時間、設截止點</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>🔄 對比範例</h4>
+                            <p><strong>❌ 模糊:</strong> 複習課本</p>
+                            <p><strong>✅ SMART:</strong> 練習數學講義第15-20題,今晚21:00-21:30完成</p>
+                            <hr style="margin: 15px 0; border: none; border-top: 1px dashed #ccc;">
+                            <p><strong>❌ 模糊:</strong> 看課本</p>
+                            <p><strong>✅ SMART:</strong> 複習自然元素週期表第162-165頁重點名詞,21:30-22:00默寫一次</p>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>💡 關鍵提醒</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>✓ 避免抄老師內容</li>
+                                <li>✓ 每天第一項先寫該科目</li>
+                                <li>✓ 多做講義或習作提升成績</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 4: 品格與成功 -->
+        <div class="card-wrapper" data-category="success" data-keywords="品格 成功 品德 長久">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">🌟</div>
+                        <div class="card-title">品格與成功</div>
+                        <div class="card-subtitle">表面成功 vs 真正成功</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">知識技巧</span>
+                            <span class="tag">品德修養</span>
+                            <span class="tag">持久發展</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>🌟 成功的兩層面 (課本P.26-27)</h3>
+                        
+                        <div class="visual-diagram">
+                            <div class="tree-visual">
+                                <div class="tree-top">
+                                    🌳 表面成功<br>
+                                    知識 + 技巧<br>
+                                    (短期可見)
+                                </div>
+                                <div class="tree-trunk"></div>
+                                <div class="tree-roots">
+                                    🌱 品格基礎<br>
+                                    修養 + 德行<br>
+                                    (長期支撐)
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="key-points">
+                            <h4>📚 核心概念</h4>
+                            <ul>
+                                <li><strong>表面成功:</strong> 知識與技巧帶來,難以為繼(不長久)</li>
+                                <li><strong>真正成功:</strong> 表面成功 + 品格 = 可持續發展</li>
+                                <li><strong>關鍵字:</strong> 品德、品格、修養</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>🎭 實例分析</h4>
+                            <p><strong>藝人案例:</strong> 擁有才藝(表面成功),但品德爭議導致職涯下滑</p>
+                            <p><strong>學姊案例:</strong> 造型蛋糕技能+穩健品德=一堂課40萬收入</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 5: 雙圈理論 -->
+        <div class="card-wrapper" data-category="theory" data-keywords="影響圈 關注圈 可控 不可控">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">⭕</div>
+                        <div class="card-title">雙圈理論</div>
+                        <div class="card-subtitle">影響圈 vs 關注圈 • 聚焦可控事務</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">可控制</span>
+                            <span class="tag">不可控</span>
+                            <span class="tag">效能提升</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>⭕ 雙圈理論:影響圈與關注圈</h3>
+                        
+                        <div class="visual-diagram">
+                            <div class="circle-diagram">
+                                <div class="circle influence-circle">
+                                    <div style="font-size: 2em; margin-bottom: 10px;">💜</div>
+                                    <strong>影響圈</strong>
+                                    <div style="font-size: 0.85em; margin-top: 8px;">可控制的事務</div>
+                                </div>
+                                <div class="circle concern-circle">
+                                    <div style="font-size: 2em; margin-bottom: 10px;">❤️</div>
+                                    <strong>關注圈</strong>
+                                    <div style="font-size: 0.85em; margin-top: 8px;">不可控的事務</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="key-points">
+                            <h4>💜 影響圈 (可控制)</h4>
+                            <ul>
+                                <li>睡前喝牛奶、聽音樂、列明日清單</li>
+                                <li>調整讀書時長、每日增加0.5小時</li>
+                                <li>課後問老師、組讀書會</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>❤️ 關注圈 (不可控)</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>鄰居狗叫、過敏發作、電視聲</li>
+                                <li>老師出題難度與命題者</li>
+                                <li>考試日期與範圍</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>💡 行動策略</h4>
+                            <p><strong>原則:</strong> 把注意力與精力放在影響圈,擴大可控範圍</p>
+                            <p><strong>斷考情境:</strong> 不要求老師調整難度,而是多讀半小時、增加練習量</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 6: 4F心得 -->
+        <div class="card-wrapper" data-category="reflection" data-keywords="4F 心得 反思 學習">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">💭</div>
+                        <div class="card-title">4F心得寫作</div>
+                        <div class="card-subtitle">結構化反思 • 深化學習成效</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">事實</span>
+                            <span class="tag">感受</span>
+                            <span class="tag">發現</span>
+                            <span class="tag">未來</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>💭 4F心得寫作法</h3>
+                        
+                        <div class="key-points">
+                            <h4>📝 四步驟結構</h4>
+                            <ul>
+                                <li><strong>F1 事實 (Fact):</strong> 今天聽到與看到的重點事件</li>
+                                <li><strong>F2 感受 (Feeling):</strong> 情緒與身心反應</li>
+                                <li><strong>F3 發現 (Finding):</strong> 收穫、洞見、原理</li>
+                                <li><strong>F4 未來 (Future):</strong> 具體可行的應用與改進</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>📖 完整範例</h4>
+                            <p><strong>事實:</strong> 學到真正成功=表面成功+品格,與雙圈理論。本週寫每日三件事。</p>
+                            <p><strong>感受:</strong> 發現自己常關注不可控而焦慮,對被扣分不甘心但理解規範重要。</p>
+                            <p><strong>發現:</strong> 規劃需「動詞+科目+範圍」;影響圈行動比抱怨有效。</p>
+                            <p><strong>未來:</strong> 每日加讀30分鐘、理化小考設定90分,錯題訂正15題,23:30前熄燈。</p>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>⚠️ 注意事項</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>✓ 影響筆記作業成績</li>
+                                <li>✓ 需完整四部分,避免敷衍</li>
+                                <li>✓ 可搭配心智圖整理</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 7: 閱讀策略 -->
+        <div class="card-wrapper" data-category="planning" data-keywords="閱讀 策略 課本 效率">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">📖</div>
+                        <div class="card-title">閱讀四步驟</div>
+                        <div class="card-subtitle">高效課本閱讀策略</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">大標</span>
+                            <span class="tag">小標</span>
+                            <span class="tag">圖表</span>
+                            <span class="tag">金句</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>📖 閱讀四步驟策略</h3>
+                        
+                        <div class="key-points">
+                            <h4>🔍 閱讀流程</h4>
+                            <ul>
+                                <li><strong>步驟1:</strong> 看大標 → 找關鍵字(如「品德」)</li>
+                                <li><strong>步驟2:</strong> 看小標 → 理解分論點</li>
+                                <li><strong>步驟3:</strong> 看圖表 → 視覺化理解</li>
+                                <li><strong>步驟4:</strong> 看金句 → 深化價值判斷</li>
+                                <li><strong>最後:</strong> 才看內文細節</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>💡 實作範例 (P.26-27)</h4>
+                            <p><strong>大標:</strong> 品德 (核心關鍵字)</p>
+                            <p><strong>小標1:</strong> 知識技巧成功難以為繼</p>
+                            <p><strong>圖表:</strong> 樹的隱喻(枝葉=表面,根=品德)</p>
+                            <p><strong>金句:</strong> 具備才華者往往欠缺基礎品德</p>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>📝 學習建議</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>✓ 不要只抄,用自己的話寫重點</li>
+                                <li>✓ 可觀摩他人但需內化</li>
+                                <li>✓ 建立結構化認知</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 8: 自我領導力 -->
+        <div class="card-wrapper" data-category="planning" data-keywords="領導力 習慣 持續 自律">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">💪</div>
+                        <div class="card-title">自我領導力</div>
+                        <div class="card-subtitle">每日5分鐘建立長期習慣</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">持續性</span>
+                            <span class="tag">自律</span>
+                            <span class="tag">成長</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>💪 自我領導力培養</h3>
+                        
+                        <div class="key-points">
+                            <h4>🎯 核心原則</h4>
+                            <ul>
+                                <li><strong>每日5分鐘:</strong> 持續2年見成效</li>
+                                <li><strong>規劃未來:</strong> 不是日記或回憶錄</li>
+                                <li><strong>格式明確:</strong> 動詞+科目+範圍+時間</li>
+                                <li><strong>字體工整:</strong> 便於檢閱與執行</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>🔄 習慣養成循環</h4>
+                            <p><strong>第1步:</strong> 每日填寫規劃表(5分鐘)</p>
+                            <p><strong>第2步:</strong> 組長檢查確認</p>
+                            <p><strong>第3步:</strong> 執行並記錄成果</p>
+                            <p><strong>第4步:</strong> 反思調整(4F心得)</p>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>⚡ 成功關鍵</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>✓ 避免空泛用語(複習/預習)</li>
+                                <li>✓ 組長與本人共同負責</li>
+                                <li>✓ 持續才能見效</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 9: 評分標準 -->
+        <div class="card-wrapper" data-category="planning" data-keywords="評分 標準 扣分 成績">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">📊</div>
+                        <div class="card-title">評分標準</div>
+                        <div class="card-subtitle">清楚規則 • 明確目標</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">100分標準</span>
+                            <span class="tag">扣分項目</span>
+                            <span class="tag">加分機會</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>📊 規劃表評分標準</h3>
+                        
+                        <div class="key-points">
+                            <h4>✅ 滿分條件 (100分)</h4>
+                            <ul>
+                                <li>動詞 + 科目 + 範圍 → 三要素完整</li>
+                                <li>明確時間限制(壓時間)</li>
+                                <li>字體工整可讀</li>
+                                <li>內容具體不重複</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>❌ 扣分項目</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li><span class="score-badge">60分</span> 只寫範圍不明確</li>
+                                <li><span class="score-badge">70分</span> 未壓時間</li>
+                                <li><span class="score-badge">80分</span> 外出仍有書寫</li>
+                                <li><span class="score-badge">-10分</span> 少寫一個任務</li>
+                                <li><span class="score-badge">-10分</span> 未寫明確範圍</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>🌟 加分機會</h4>
+                            <p><strong>+5分:</strong> 內容特別清晰具體</p>
+                            <p><strong>範例:</strong> 寫數學考卷第X回第1-30題,錯題標記並重做,總時長50分鐘(可得95+5=100分)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 10: 睡眠管理 -->
+        <div class="card-wrapper" data-category="theory" data-keywords="睡眠 作息 影響圈 健康">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">😴</div>
+                        <div class="card-title">睡眠管理策略</div>
+                        <div class="card-subtitle">運用影響圈改善作息</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">睡前儀式</span>
+                            <span class="tag">環境調整</span>
+                            <span class="tag">23:30前</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>😴 睡眠管理策略</h3>
+                        
+                        <div class="key-points">
+                            <h4>💜 影響圈行動 (可控)</h4>
+                            <ul>
+                                <li>睡前喝溫牛奶</li>
+                                <li>聽輕音樂放鬆</li>
+                                <li>列明日待辦清單</li>
+                                <li>23:30前熄燈就寢</li>
+                                <li>調整讀書時段分配</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>❤️ 關注圈因素 (不可控)</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>鄰居狗叫聲</li>
+                                <li>突然過敏發作</li>
+                                <li>家人看電視聲音</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>💡 實戰方案</h4>
+                            <p><strong>數據:</strong> NearPod顯示32%學生12點後睡</p>
+                            <p><strong>對策:</strong> 建立睡前儀式→列明日清單→音樂放鬆→23:00上床→23:30熄燈</p>
+                            <p><strong>結果:</strong> 隔天精神狀態改善,學習效率提升</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 11: 斷考策略 -->
+        <div class="card-wrapper" data-category="planning" data-keywords="考試 斷考 準備 策略">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">📝</div>
+                        <div class="card-title">斷考應對策略</div>
+                        <div class="card-subtitle">聚焦影響圈 • 提升分數</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">增加時長</span>
+                            <span class="tag">題量練習</span>
+                            <span class="tag">主動提問</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>📝 斷考應對策略</h3>
+                        
+                        <div class="key-points">
+                            <h4>💜 影響圈策略 (有效)</h4>
+                            <ul>
+                                <li>每日多讀30分鐘(晚間加讀)</li>
+                                <li>下課主動問老師3個問題</li>
+                                <li>完成數學練習題2頁</li>
+                                <li>錯題訂正並標記重點</li>
+                                <li>組讀書會互相討論</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>❤️ 關注圈 (無效抱怨)</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li>❌ 要求老師出簡單題</li>
+                                <li>❌ 抱怨題目太難</li>
+                                <li>❌ 希望考試延後</li>
+                                <li>❌ 抱怨出題範圍</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>🎯 具體行動計畫</h4>
+                            <p><strong>理化小考目標90分:</strong></p>
+                            <p>→ 今日完成公式卡片整理10張</p>
+                            <p>→ 晚間測驗卷1回限時25分鐘</p>
+                            <p>→ 錯題訂正15題並理解原理</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card 12: 技術問題處理 -->
+        <div class="card-wrapper" data-category="management" data-keywords="技術 問題 處理 Nearpod">
+            <div class="card" onclick="flipCard(this)">
+                <div class="card-face card-front">
+                    <div>
+                        <div class="card-icon">🔧</div>
+                        <div class="card-title">技術問題處理</div>
+                        <div class="card-subtitle">常見狀況快速解決方案</div>
+                        <div style="margin-top: 20px;">
+                            <span class="tag">Nearpod</span>
+                            <span class="tag">課本</span>
+                            <span class="tag">平板</span>
+                        </div>
+                    </div>
+                    <div class="flip-hint">👆 點擊翻轉查看完整內容</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-back-content">
+                        <h3>🔧 技術問題處理指南</h3>
+                        
+                        <div class="key-points">
+                            <h4>📱 Nearpod問題</h4>
+                            <ul>
+                                <li><strong>卡住/無法載入:</strong> 滑掉重開APP</li>
+                                <li><strong>圈圈一直轉:</strong> 等待跑完或重啟</li>
+                                <li><strong>錯誤訊息:</strong> 關閉後重新輸入代碼</li>
+                                <li><strong>常用代碼:</strong> SX9FD、SX19FD、8Wi9X、3KB</li>
+                            </ul>
+                        </div>
+
+                        <div class="warning-section">
+                            <h4>📚 課本/物品問題</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                <li><strong>課本遺失:</strong> 改拿其他號碼並通報</li>
+                                <li><strong>號碼錯誤:</strong> 依號碼領取與歸還</li>
+                                <li><strong>平板故障:</strong> 按Home鍵兩次清除重開</li>
+                            </ul>
+                        </div>
+
+                        <div class="example-section">
+                            <h4>🔄 標準處理流程</h4>
+                            <p><strong>步驟1:</strong> 嘗試基本排除(重啟/重開)</p>
+                            <p><strong>步驟2:</strong> 確認代碼正確</p>
+                            <p><strong>步驟3:</strong> 仍無法解決→通報老師</p>
+                            <p><strong>步驟4:</strong> 使用替代方案繼續學習</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentFilter = 'all';
+
+        function flipCard(cardFace) {
+            const card = cardFace.closest('.card');
+            card.classList.toggle('flipped');
+        }
+
+        function filterByCategory(category, clickedButton) {
+            currentFilter = category;
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            clickedButton.classList.add('active');
+            
+            const cards = document.querySelectorAll('.card-wrapper');
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            updateStats(visibleCount);
+        }
+
+        function filterCards() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.card-wrapper');
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                const keywords = card.dataset.keywords.toLowerCase();
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const subtitle = card.querySelector('.card-subtitle').textContent.toLowerCase();
+                
+                if (keywords.includes(searchTerm) || title.includes(searchTerm) || subtitle.includes(searchTerm)) {
+                    if (currentFilter === 'all' || card.dataset.category === currentFilter) {
+                        card.style.display = 'block';
+                        visibleCount++;
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            updateStats(visibleCount);
+        }
+
+        function updateStats(count) {
+            document.getElementById('statsBar').innerHTML = `顯示 <strong>${count}</strong> 張知識卡片`;
+        }
+
+        // 初始化
+        window.onload = function() {
+            console.log('視覺化知識圖卡系統已載入');
+            updateStats(12);
+        }
+    </script>
+</body>
+</html>
